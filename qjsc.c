@@ -76,9 +76,7 @@ static const FeatureEntry feature_list[] = {
     { "promise", "Promise" },
 #define FE_MODULE_LOADER 9
     { "module-loader", NULL },
-#ifdef CONFIG_BIGNUM
     { "bigint", "BigInt" },
-#endif
 };
 
 void namelist_add(namelist_t *lp, const char *name, const char *short_name,
@@ -341,21 +339,21 @@ static const char main_c_template2[] =
 
 void help(void)
 {
-    printf("QuickJS Compiler version " CONFIG_VERSION "\n"
-           "usage: " PROG_NAME " [options] [files]\n"
-           "\n"
-           "options are:\n"
-           "-c          only output bytecode in a C file\n"
-           "-e          output main() and bytecode in a C file (default = executable output)\n"
-           "-o output   set the output filename\n"
-           "-N cname    set the C name of the generated data\n"
-           "-m          compile as Javascript module (default=autodetect)\n"
-           "-D module_name         compile a dynamically loaded module or worker\n"
-           "-M module_name[,cname] add initialization code for an external C module\n"
-           "-x          byte swapped output\n"
-           "-p prefix   set the prefix of the generated C names\n"
-           "-S n        set the maximum stack size to 'n' bytes (default=%d)\n",
-           JS_DEFAULT_STACK_SIZE);
+//    printf("QuickJS Compiler version " CONFIG_VERSION "\n"
+//           "usage: " PROG_NAME " [options] [files]\n"
+//           "\n"
+//           "options are:\n"
+//           "-c          only output bytecode in a C file\n"
+//           "-e          output main() and bytecode in a C file (default = executable output)\n"
+//           "-o output   set the output filename\n"
+//           "-N cname    set the C name of the generated data\n"
+//           "-m          compile as Javascript module (default=autodetect)\n"
+//           "-D module_name         compile a dynamically loaded module or worker\n"
+//           "-M module_name[,cname] add initialization code for an external C module\n"
+//           "-x          byte swapped output\n"
+//           "-p prefix   set the prefix of the generated C names\n"
+//           "-S n        set the maximum stack size to 'n' bytes (default=%d)\n",
+//           JS_DEFAULT_STACK_SIZE);
 #ifdef CONFIG_LTO
     {
         int i;
@@ -454,11 +452,11 @@ static int output_executable(const char *out_filename, const char *cfilename,
     *arg++ = "-lpthread";
     *arg = NULL;
     
-    if (verbose) {
-        for(arg = argv; *arg != NULL; arg++)
-            printf("%s ", *arg);
-        printf("\n");
-    }
+//    if (verbose) {
+//        for(arg = argv; *arg != NULL; arg++)
+//            printf("%s ", *arg);
+//        printf("\n");
+//    }
     
     ret = exec_cmd((char **)argv);
     unlink(cfilename);

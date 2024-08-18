@@ -282,25 +282,25 @@ static const JSMallocFunctions trace_mf = {
 
 void help(void)
 {
-    printf("QuickJS version " CONFIG_VERSION "\n"
-           "usage: " PROG_NAME " [options] [file [args]]\n"
-           "-h  --help         list options\n"
-           "-e  --eval EXPR    evaluate EXPR\n"
-           "-i  --interactive  go to interactive mode\n"
-           "-m  --module       load as ES6 module (default=autodetect)\n"
-           "    --script       load as ES6 script (default=autodetect)\n"
-           "-I  --include file include an additional file\n"
-           "    --std          make 'std' and 'os' available to the loaded script\n"
-#ifdef CONFIG_BIGNUM
-           "    --bignum       enable the bignum extensions (BigFloat, BigDecimal)\n"
-           "    --qjscalc      load the QJSCalc runtime (default if invoked as qjscalc)\n"
-#endif
-           "-T  --trace        trace memory allocation\n"
-           "-d  --dump         dump the memory usage stats\n"
-           "    --memory-limit n       limit the memory usage to 'n' bytes\n"
-           "    --stack-size n         limit the stack size to 'n' bytes\n"
-           "    --unhandled-rejection  dump unhandled promise rejections\n"
-           "-q  --quit         just instantiate the interpreter and quit\n");
+//    printf("QuickJS version " CONFIG_VERSION "\n"
+//           "usage: " PROG_NAME " [options] [file [args]]\n"
+//           "-h  --help         list options\n"
+//           "-e  --eval EXPR    evaluate EXPR\n"
+//           "-i  --interactive  go to interactive mode\n"
+//           "-m  --module       load as ES6 module (default=autodetect)\n"
+//           "    --script       load as ES6 script (default=autodetect)\n"
+//           "-I  --include file include an additional file\n"
+//           "    --std          make 'std' and 'os' available to the loaded script\n"
+//#ifdef CONFIG_BIGNUM
+//           "    --bignum       enable the bignum extensions (BigFloat, BigDecimal)\n"
+//           "    --qjscalc      load the QJSCalc runtime (default if invoked as qjscalc)\n"
+//#endif
+//           "-T  --trace        trace memory allocation\n"
+//           "-d  --dump         dump the memory usage stats\n"
+//           "    --memory-limit n       limit the memory usage to 'n' bytes\n"
+//           "    --stack-size n         limit the stack size to 'n' bytes\n"
+//           "    --unhandled-rejection  dump unhandled promise rejections\n"
+//           "-q  --quit         just instantiate the interpreter and quit\n");
     exit(1);
 }
 
@@ -454,8 +454,10 @@ int main(int argc, char **argv)
         }
     }
 
+#ifdef CONFIG_BIGNUM
     if (load_jscalc)
         bignum_ext = 1;
+#endif
 
     if (trace_memory) {
         js_trace_malloc_init(&trace_data);
@@ -557,9 +559,9 @@ int main(int argc, char **argv)
                     best[j] = ms;
             }
         }
-        printf("\nInstantiation times (ms): %.3f = %.3f+%.3f+%.3f+%.3f\n",
-               best[1] + best[2] + best[3] + best[4],
-               best[1], best[2], best[3], best[4]);
+//        printf("\nInstantiation times (ms): %.3f = %.3f+%.3f+%.3f+%.3f\n",
+//               best[1] + best[2] + best[3] + best[4],
+//               best[1], best[2], best[3], best[4]);
     }
     return 0;
  fail:
