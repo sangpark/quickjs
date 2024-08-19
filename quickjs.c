@@ -45,10 +45,11 @@
 #include "quickjs.h"
 #include "libregexp.h"
 #include "libbf.h"
-//#include <android/log.h>
-#define LOG_TAG "QuickJS.C"
-
+#include <android/log.h>
+#define LOG_TAG "QuickJS"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+
+
 #define OPTIMIZE         1
 #define SHORT_OPCODES    1
 #if defined(EMSCRIPTEN)
@@ -1584,6 +1585,7 @@ static inline uintptr_t js_get_stack_pointer(void)
 static inline BOOL js_check_stack_overflow(JSRuntime *rt, size_t alloca_size)
 {
     uintptr_t sp;
+    assert(js_get_stack_pointer() != NULL);
     sp = js_get_stack_pointer() - alloca_size;
     return unlikely(sp < rt->stack_limit);
 }
@@ -20321,8 +20323,9 @@ static __exception int next_token(JSParseState *s)
     int c;
     BOOL ident_has_escape;
     JSAtom atom;
-    
+    LOGI("Parsing for next token");
     if (js_check_stack_overflow(s->ctx->rt, 0)) {
+        LOGI("Stack overflow error");
         return js_parse_error(s, "stack overflow");
     }
     
@@ -20335,8 +20338,11 @@ static __exception int next_token(JSParseState *s)
     s->token.line_num = s->line_num;
     s->token.ptr = p;
     c = *p;
+    LOGI("Checking token %d", c);
     switch(c) {
     case 0:
+        LOGI("Token is 0");
+
         if (p >= s->buf_end) {
             s->token.val = TOK_EOF;
         } else {
@@ -20344,12 +20350,14 @@ static __exception int next_token(JSParseState *s)
         }
         break;
     case '`':
+        LOGI("Token is `");
         if (js_parse_template_part(s, p + 1))
             goto fail;
         p = s->buf_ptr;
         break;
     case '\'':
     case '\"':
+        LOGI("Token is a quote");
         if (js_parse_string(s, c, TRUE, p + 1, &s->token, &p))
             goto fail;
         break;
@@ -20535,6 +20543,7 @@ static __exception int next_token(JSParseState *s)
         }
         break;
     case '0':
+        LOGI("Token is '0'");
         /* in strict mode, octal literals are not accepted */
         if (is_digit(p[1]) && (s->cur_func->js_mode & JS_MODE_STRICT)) {
             js_parse_error(s, "octal literals are deprecated in strict mode");
@@ -20550,6 +20559,7 @@ static __exception int next_token(JSParseState *s)
             JSValue ret;
             const uint8_t *p1;
             int flags, radix;
+            LOGI("Parsing number");
             flags = ATOD_ACCEPT_BIN_OCT | ATOD_ACCEPT_LEGACY_OCTAL |
                 ATOD_ACCEPT_UNDERSCORES;
             flags |= ATOD_ACCEPT_SUFFIX;
@@ -33133,16 +33143,19 @@ static __exception int js_parse_program(JSParseState *s)
     if (js_parse_directives(s))
         return -1;
 
+    LOGI("Inside the Parsing program");
     fd->is_global_var = (fd->eval_type == JS_EVAL_TYPE_GLOBAL) ||
         (fd->eval_type == JS_EVAL_TYPE_MODULE) ||
         !(fd->js_mode & JS_MODE_STRICT);
 
+    LOGI("IS Module: %d", !s->is_module);
     if (!s->is_module) {
         /* hidden variable for the return value */
         fd->eval_ret_idx = idx = add_var(s->ctx, fd, JS_ATOM__ret_);
         if (idx < 0)
             return -1;
     }
+    LOGI("Token val: %d", s->token.val);
 
     while (s->token.val != TOK_EOF) {
         if (js_parse_source_element(s))
@@ -33182,7 +33195,7 @@ static JSValue JS_EvalFunctionInternal(JSContext *ctx, JSValue fun_obj,
 {
     JSValue ret_val;
     uint32_t tag;
-//    LOGI("JS Eval Function Internal");
+    printf("JS Eval Function Internal");
 
     tag = JS_VALUE_GET_TAG(fun_obj);
     if (tag == JS_TAG_FUNCTION_BYTECODE) {
@@ -33253,7 +33266,7 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
     JSFunctionBytecode *b;
     JSFunctionDef *fd;
     JSModuleDef *m;
-//    LOGI("___JS Eval Function Internal");
+    LOGI("Inside the __JS_EvalInternal");
 
     js_parse_init(ctx, s, input, input_len, filename);
     skip_shebang(s);
@@ -33261,6 +33274,7 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
     eval_type = flags & JS_EVAL_TYPE_MASK;
     m = NULL;
     if (eval_type == JS_EVAL_TYPE_DIRECT) {
+        LOGI("Inside the __JS_EvalInternal: eval_type is direct");
         JSObject *p;
         sf = ctx->rt->current_stack_frame;
         assert(sf != NULL);
@@ -33271,6 +33285,7 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
         var_refs = p->u.func.var_refs;
         js_mode = b->js_mode;
     } else {
+        LOGI("Inside the __JS_EvalInternal: eval_type is NOT direct");
         sf = NULL;
         b = NULL;
         var_refs = NULL;
@@ -33289,9 +33304,12 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
             js_mode |= JS_MODE_STRICT;
         }
     }
+    LOGI("Inside the __JS_EvalInternal: getting new function");
+
     fd = js_new_function_def(ctx, NULL, TRUE, FALSE, filename, 1);
     if (!fd)
         goto fail1;
+    LOGI("Got the function definition");
     s->cur_func = fd;
     fd->eval_type = eval_type;
     fd->has_this_binding = (eval_type != JS_EVAL_TYPE_DIRECT);
@@ -33319,10 +33337,12 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
 
     push_scope(s); /* body scope */
     fd->body_scope = fd->scope_level;
-    
+
+    LOGI("Parsing program");
     err = js_parse_program(s);
     if (err) {
     fail:
+        LOGI("Error parsing program");
         free_token(s, &s->token);
         js_free_function_def(ctx, fd);
         goto fail1;
@@ -33330,8 +33350,11 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
 
     /* create the function object and all the enclosed functions */
     fun_obj = js_create_function(ctx, fd);
+    LOGI("Creating function obj");
     if (JS_IsException(fun_obj))
         goto fail1;
+
+    LOGI("Created function object");
     /* Could add a flag to avoid resolution if necessary */
     if (m) {
         m->func_obj = fun_obj;
@@ -33339,9 +33362,12 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
             goto fail1;
         fun_obj = JS_DupValue(ctx, JS_MKPTR(JS_TAG_MODULE, m));
     }
+    LOGI("Inside the __JS_EvalInternal: near the end");
+
     if (flags & JS_EVAL_FLAG_COMPILE_ONLY) {
         ret_val = fun_obj;
     } else {
+        LOGI("Inside the __JS_EvalInternal: Getting ret val not compile only");
         ret_val = JS_EvalFunctionInternal(ctx, fun_obj, this_obj, var_refs, sf);
     }
     return ret_val;
@@ -33360,7 +33386,7 @@ static JSValue JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
     if (unlikely(!ctx->eval_internal)) {
         return JS_ThrowTypeError(ctx, "eval is not supported");
     }
-//    LOGI("JS Eval Function Internal Indirection");
+    LOGI("Inside the JS_EvalInternal");
 
     return ctx->eval_internal(ctx, this_obj, input, input_len, filename,
                               flags, scope_idx);
@@ -33401,7 +33427,7 @@ JSValue JS_EvalThis(JSContext *ctx, JSValueConst this_obj,
 JSValue JS_Eval(JSContext *ctx, const char *input, size_t input_len,
                 const char *filename, int eval_flags)
 {
-//    LOGI("JS Eval This");
+    LOGI("Inside the JS_Eval");
 
     return JS_EvalThis(ctx, ctx->global_obj, input, input_len, filename,
                        eval_flags);
